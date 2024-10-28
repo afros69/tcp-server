@@ -11,10 +11,6 @@ def on_data_received(data, count):
     parser.enqueue(data, count)
 
 
-# Accumulator buffer for NAL units
-nal_buffer = bytearray()
-
-
 def unit_handler(unit: H264Unit, count):
     data_length = None
     if unit.length_data is not None:
@@ -26,12 +22,12 @@ def unit_handler(unit: H264Unit, count):
         print("Frame is here!!!")
 
 
-server = TCPServer(host="0.0.0.0", port=6969)
+server = TCPServer()
 parser = NALUParser()
-parser.h264_unit_handler = unit_handler
-
 
 server.received_data_handler = on_data_received
+parser.h264_unit_handler = unit_handler
+
 
 if __name__ == '__main__':
     server.start()
