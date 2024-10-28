@@ -8,25 +8,6 @@ class FrameDataBuilder:
         self.pps = None
         self.description = None
 
-    def parse_sps(self, sps):
-        # Extract information from SPS data based on H.264 specification
-        try:
-            # Convert bytes to a bit string for easier parsing
-            bit_string = ''.join(f'{byte:08b}' for byte in sps)
-
-            # Parse width and height from SPS based on known positions
-            width_in_mbs_minus1 = int(bit_string[32:44], 2)
-            height_in_map_units_minus1 = int(bit_string[44:56], 2)
-
-            # Calculate width and height in pixels
-            width = (width_in_mbs_minus1 + 1) * 16
-            height = (height_in_map_units_minus1 + 1) * 16
-
-            return width, height
-        except Exception as e:
-            print("Error parsing SPS:", e)
-            return None, None
-
     def create_description(self, sps: bytes, pps: bytes):
         self.description = sps + pps
 
@@ -46,8 +27,6 @@ class FrameDataBuilder:
 
         if h264_unit.type == 'sps':
             self.sps = h264_unit.data
-            w, h = self.parse_sps(self.sps)
-            print(w, h)
             return None
         elif h264_unit.type == 'pps':
             self.pps = h264_unit.data

@@ -1,4 +1,5 @@
 import tempfile
+from io import BytesIO
 
 import av
 import cv2
@@ -19,6 +20,8 @@ class FrameDecoder:
             return self.decode_av(data)
         elif approach == 3:
             return self.decode_ffmpeg(data)
+        elif approach == 4:
+            return self.decode_h264_with_pyav(data)
 
     def decode_tempfile(self, frame_data):
         try:
@@ -56,6 +59,26 @@ class FrameDecoder:
         # Return the first frame (assuming a single frame packet)
         return frames[0] if frames else None
 
+    def decode_h264_with_pyav(self, frame_data):
+        # Use BytesIO to create a stream from the byte data
+        stream = BytesIO(frame_data)
+
+        # Create a PyAV input container from the byte stream
+        container = av.open(stream, format='h264')
+
+        # Decode frames
+        frames = []
+        for frame in container.decode(video=0):
+            width, height = frame.width, frame.height
+            img = frame.to_rgb().to_ndarray()
+
+            # Confirm shape matches the frame's properties
+            img = img.reshape(height, width, 3)
+            frames.append(img)
+
+        print(f"{len(frames)} frames were decoded")
+        return frames[-1]  # Return a list of decoded frames
+
     def decode_ffmpeg(self, frame_date):
         # Combine SPS, PPS, and I-frame to form a complete NAL unit stream
         h264_data = frame_date
@@ -84,7 +107,7 @@ def test():
         if build_data is None:
             return
 
-        for i in [3]:
+        for i in [4]:
             frame = decoder.decode(build_data, i)
             if frame is not None:
                 print("Frame is here!!!")
