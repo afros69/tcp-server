@@ -9,27 +9,33 @@ class H264Unit:
     class NALUType:
         SPS = 'sps'
         PPS = 'pps'
-        VCL = 'vcl'
+        IFR = 'ifr'
+        PFR = 'pfr'
 
     def __init__(self, payload: bytes):
         self.payload = payload
-        self.type_number = payload[0] & 0x1F
+        self.type_number = payload[4] & 0x1F
         self.length_data = None
+        self.byte_length = None
 
-        if self.type_number == 7 or self.type_number == 0:
-            self.type = H264Unit.NALUType.SPS
-        elif self.type_number == 8:
-            self.type = H264Unit.NALUType.PPS
-        else:
-            self.type = H264Unit.NALUType.VCL
-            nalu_length = len(payload)
+        type_map = {
+            7: H264Unit.NALUType.SPS,
+            8: H264Unit.NALUType.PPS,
+            5: H264Unit.NALUType.IFR,
+            1: H264Unit.NALUType.PFR
+        }
+        self.type = type_map.get(self.type_number)
+
+        if self.type == H264Unit.NALUType.IFR or self.type == H264Unit.NALUType.PFR:
+            nalu_length = len(payload[4:])
             # Convert the length to a 4-byte big-endian format
             self.length_data = struct.pack('>I', nalu_length)
+            self.byte_length = nalu_length
 
     @property
     def data(self):
-        if self.type == H264Unit.NALUType.VCL:
-            return self.length_data + self.payload
+        # if self.type == H264Unit.NALUType.VCL:
+        #     return self.length_data + self.payload
         return self.payload
 
 

@@ -1,15 +1,10 @@
 import struct
 import time
 
-import av
-
-from converter import converter
+from builder import frame_data_builder
 from h264_unit import H264Unit
 from nalu_parser import NALUParser
 from server import TCPServer
-
-# Initialize PyAV codec context
-codec = av.CodecContext.create('h264', 'r')
 
 
 def on_data_received(data, count):
@@ -25,7 +20,8 @@ def unit_handler(unit: H264Unit, count):
     if unit.length_data is not None:
         data_length = struct.unpack('>I', unit.length_data)[0]
     print(f"unit: type - {unit.type} [{unit.type_number}], length-data - {data_length} count- {count}")
-    frame = converter.convert(unit)
+    frame = frame_data_builder.convert(unit)
+    # TODO: frame needs to be decoded
     if frame is not None:
         print("Frame is here!!!")
 

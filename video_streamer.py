@@ -2,6 +2,7 @@ import subprocess
 import cv2
 import numpy as np
 
+
 class VideoStreamer:
     def __init__(self, width=640, height=480):
         self.width = width
