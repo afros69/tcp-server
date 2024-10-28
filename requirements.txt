@@ -1,0 +1,5 @@
+av==13.1.0
+ffmpeg-python==0.2.0
+future==1.0.0
+numpy==2.1.2
+opencv-python-headless==4.10.0.84
