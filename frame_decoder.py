@@ -25,12 +25,14 @@ class FrameDecoder:
                 h264_filename = tmpfile.name
 
             cap = cv2.VideoCapture(h264_filename)
-
-            if cap.isOpened():
+            new_frame = None
+            while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
-                    return None
-                return frame
+                    break
+                new_frame = frame
+            cap.release()
+            return new_frame
         except Exception as e:
             print(f"Failed to decode frame: {e}")
             return None

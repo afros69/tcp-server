@@ -16,9 +16,11 @@ class FrameDataBuilder:
             print("Missing SPS/PPS")
             return None
 
-        frame_data = self.description + block_buffer
+        data = block_buffer
         if not is_key_frame:
-            frame_data = self.description + self.key_frame + block_buffer
+            data = self.key_frame + block_buffer
+        frame_data = self.description + data
+        self.key_frame = data
 
         return frame_data
 
