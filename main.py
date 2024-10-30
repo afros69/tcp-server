@@ -1,41 +1,60 @@
-import struct
+import cv2
+import queue
+import threading
 import time
 
+import numpy as np
+#
 from builder import frame_data_builder
+from frame_decoder import FrameDecoder
 from h264_unit import H264Unit
 from nalu_parser import NALUParser
 from server import TCPServer
 
-
-def on_data_received(data, count):
-    parser.enqueue(data, count)
-
-
-def unit_handler(unit: H264Unit, count):
-    data_length = None
-    if unit.length_data is not None:
-        data_length = struct.unpack('>I', unit.length_data)[0]
-    print(f"unit: type - {unit.type} [{unit.type_number}], length-data - {data_length} count- {count}")
-    frame = frame_data_builder.convert(unit)
-    # TODO: frame needs to be decoded
-    if frame is not None:
-        print("Frame is here!!!")
+# Frame queue for buffering decoded frames
+frame_queue = queue.Queue()
 
 
-server = TCPServer()
-parser = NALUParser()
+# Function to handle data reception and processing
+def data_receiver():
+    server = TCPServer()
+    parser = NALUParser()
 
-server.received_data_handler = on_data_received
-parser.h264_unit_handler = unit_handler
+    def on_data_received(data, count):
+        parser.enqueue(data, count)
+
+    def unit_handler(unit: H264Unit, count):
+        decoder = FrameDecoder()
+        print(f"unit: type - {unit.type} [{unit.type_number}], length - {unit.byte_length}")
+        build_data = frame_data_builder.build(unit)
+        if build_data is None:
+            return
+
+        # Decode the frame data
+        frame = decoder.decode(build_data, 1)
+        if frame is not None:
+            print("Frame received and decoded", frame.shape)
+            cv2.imshow("MyWindow", frame)
+
+            key = cv2.waitKey(1)
+            if key & 0xFF == ord('q'):
+                return
+
+    server.received_data_handler = on_data_received
+    parser.h264_unit_handler = unit_handler
+    server.start()
+
+    try:
+        while True:
+            time.sleep(1)  # Keep the thread alive
+    except KeyboardInterrupt:
+        cv2.destroyAllWindows()
+        print("Stopped by user.")
+    except Exception as e:
+        print(f"Error in data receiver: {e}")
+    finally:
+        server.stop()
 
 
 if __name__ == '__main__':
-    server.start()
-    # Keep the main thread alive
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        server.stop()
-        print("Server stopped by user.")
-
+    data_receiver()

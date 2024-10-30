@@ -1,3 +1,4 @@
+import cv2
 
 from h264_unit import H264Unit
 
@@ -33,3 +34,8 @@ class NALUParser:
             for unit in units:
                 if unit.type is not None:
                     self.h264_unit_handler(unit, count)
+
+
+if __name__ == '__main__':
+    cv2.namedWindow("MyWindow")
+    print("hello world")

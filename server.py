@@ -30,14 +30,14 @@ class TCPServer:
 
     def handle_client(self, client_socket):
         count = 0
-        while count < 4:
+        while True:
             count += 1
             try:
                 data = client_socket.recv(65000)
                 if not data:
                     break
-                with open("an_data.txt", 'a') as file:
-                    file.write(str(data))
+                # with open("an_data.txt", 'a') as file:
+                #     file.write(str(data))
                 if self.received_data_handler:
                     self.received_data_handler(data, count)
             except ConnectionResetError:
