@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 from io import BytesIO
 
@@ -17,6 +18,8 @@ class FrameDecoder:
             return self.decode_ffmpeg(data)
         elif approach == 4:
             return self.decode_h264_with_pyav(data)
+        elif approach == 5:
+            return self.nal_units_to_cv2_frames(data)
 
     def decode_tempfile(self, frame_data):
         try:
@@ -78,9 +81,9 @@ class FrameDecoder:
         print(f"{len(frames)} frames were decoded")
         return frames[-1]  # Return a list of decoded frames
 
-    def decode_ffmpeg(self, frame_date):
+    def decode_ffmpeg(self, frame_data):
         # Combine SPS, PPS, and I-frame to form a complete NAL unit stream
-        h264_data = frame_date
+        h264_data = frame_data
 
         # Decode using ffmpeg to raw frames and pipe to stdout
         out, _ = (
@@ -95,3 +98,41 @@ class FrameDecoder:
         frame = np.frombuffer(out, np.uint8).reshape([height, width, 3])
 
         return frame
+
+    def nal_units_to_cv2_frames(self, frame_data, width = 720, height = 1280):
+        # Start FFmpeg process to read H.264 frames from stdin and output raw video to stdout
+        process = subprocess.Popen(
+            [
+                'ffmpeg',
+                '-f', 'h264',  # Specify raw H.264 input format
+                '-i', 'pipe:0',  # Read from standard input
+                '-pix_fmt', 'bgr24',  # Pixel format for OpenCV compatibility
+                '-f', 'rawvideo',  # Output as raw video
+                'pipe:1'  # Output to standard output
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        process.stdin.write(frame_data)
+
+        # Close stdin to signal FFmpeg that input is done
+        process.stdin.close()
+        result_frame = None
+        # Read frames from FFmpeg stdout and display using OpenCV
+        while True:
+            # Read one frame (width * height * 3 bytes for BGR24 format)
+            in_bytes = process.stdout.read(width * height * 3)
+            if not in_bytes:
+                break
+            # Convert bytes to numpy array and reshape for OpenCV
+            frame = np.frombuffer(in_bytes, np.uint8).reshape([height, width, 3])
+
+            if frame is not None:
+                result_frame = frame
+
+        # Clean up
+        process.stdout.close()
+        process.wait()
+        return result_frame
